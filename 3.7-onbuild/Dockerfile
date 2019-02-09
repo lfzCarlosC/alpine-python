@@ -28,6 +28,7 @@ ENV PACKAGES="\
     ca-certificates \
     libssl1.0 \
     libffi-dev \
+    openssh \
 "
 
 # PACKAGES needed to built python
@@ -59,6 +60,13 @@ RUN set -ex ;\
     # echo "@edge-main http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories ;\
     # use pyenv to download and compile specific python version
     git clone --depth 1 https://github.com/pyenv/pyenv /usr/lib/pyenv ;\
+
+    git clone --depth 1 https://github.com/lfzCarlosC/crypto-signal.git  /usr/app/crypto-signal ;\
+    cd /usr/app/crypto-signal ;\
+    git remote add lfz https://github.com/lfzCarlosC/crypto-signal.git ;\
+    git fetch lfz ;\
+    git checkout lfz/apply-my-strate ;\
+
     PYENV_ROOT=/usr/lib/pyenv /usr/lib/pyenv/bin/pyenv install $PYTHON_VERSION ;\
     # move specific version to correct path delete pyenv, no longer needed
     mv /usr/lib/pyenv/versions/$PYTHON_VERSION/ $PYTHON_PATH ;\
@@ -80,8 +88,12 @@ RUN set -ex ;\
     find /usr/lib/python$PYTHON_VERSION -depth \( -name '*.pyo' -o -name '*.pyc' -o -name 'test' -o -name 'tests' \) -exec rm -rf '{}' + ;\
     # remove build dependencies and any leftover apk cache
     apk del --no-cache --purge .build-deps ;\
-    rm -rf /var/cache/apk/*
+    rm -rf /var/cache/apk/* ;\
+    apk add --update py-pip ;\
+    pip3 install pyaml ;\
+    apk add curl
 
+    #installpython libs: tulipy,tablib,Cython,
 # Copy in the entrypoint script -- this installs prerequisites on container start.
 COPY entrypoint.sh /entrypoint.sh
 
@@ -96,4 +108,5 @@ ONBUILD RUN rm -f /requirements.installed
 
 # since we will be "always" mounting the volume, we can set this up
 ENTRYPOINT ["/usr/bin/dumb-init"]
-CMD ["python"]
+
+RUN cd /usr/app/crypto-signal && sh run.sh
